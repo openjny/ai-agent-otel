@@ -1,0 +1,106 @@
+# OTel Collector Configuration
+# 2 pipeline architecture: file (full data) + cloud (metadata only)
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_size: 256
+    timeout: 5s
+
+  # Strip prompt/response/tool content before sending to App Insights
+  transform/strip-content:
+    trace_statements:
+      - context: span
+        statements:
+          - delete_key(attributes, "gen_ai.input.messages")
+          - delete_key(attributes, "gen_ai.output.messages")
+          - delete_key(attributes, "gen_ai.tool.definitions")
+      - context: spanevent
+        statements:
+          - delete_key(attributes, "gen_ai.input.messages")
+          - delete_key(attributes, "gen_ai.output.messages")
+          - delete_key(attributes, "gen_ai.tool.definitions")
+          - delete_key(attributes, "tool_input")
+          - delete_key(attributes, "tool_output")
+          - delete_key(attributes, "prompt")
+    log_statements:
+      - context: log
+        statements:
+          - delete_key(attributes, "prompt")
+          - delete_key(attributes, "tool_input")
+          - delete_key(attributes, "tool_output")
+          - delete_key(attributes, "tool_parameters")
+
+exporters:
+  # Local file export — full data (content included)
+  file/traces:
+    path: /data/traces.jsonl
+    format: json
+    rotation:
+      max_megabytes: 100
+      max_backups: 30
+
+  file/metrics:
+    path: /data/metrics.jsonl
+    format: json
+    rotation:
+      max_megabytes: 50
+      max_backups: 10
+
+  file/logs:
+    path: /data/logs.jsonl
+    format: json
+    rotation:
+      max_megabytes: 100
+      max_backups: 30
+
+  # Azure Application Insights — metadata only (content stripped)
+  azuremonitor:
+    connection_string: "${APPLICATIONINSIGHTS_CONNECTION_STRING}"
+    spaneventsenabled: true
+
+service:
+  extensions: [health_check]
+  pipelines:
+    # File pipelines — full data
+    traces/file:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [file/traces]
+
+    metrics/file:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [file/metrics]
+
+    logs/file:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [file/logs]
+
+    # Cloud pipelines — metadata only (content stripped)
+    traces/cloud:
+      receivers: [otlp]
+      processors: [transform/strip-content, batch]
+      exporters: [azuremonitor]
+
+    metrics/cloud:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [azuremonitor]
+
+    logs/cloud:
+      receivers: [otlp]
+      processors: [transform/strip-content, batch]
+      exporters: [azuremonitor]

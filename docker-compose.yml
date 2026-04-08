@@ -1,0 +1,21 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    user: "${UID:-1000}:${GID:-1000}"
+    restart: unless-stopped
+    ports:
+      - "4317:4317" # gRPC
+      - "4318:4318" # HTTP
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ./data:/data
+    env_file:
+      - .env
+
+  jaeger:
+    image: jaegertracing/jaeger:latest
+    profiles: [tools]
+    ports:
+      - "16686:16686" # UI
+      - "4327:4317"   # gRPC (remapped to avoid conflict with collector)
+      - "4328:4318"   # HTTP (remapped to avoid conflict with collector)
