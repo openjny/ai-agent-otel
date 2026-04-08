@@ -9,12 +9,21 @@ AI コーディングエージェント (Copilot Chat, Copilot CLI, Claude Code)
 ```bash
 azd up                                    # Azure リソースデプロイ + .env 自動生成
 docker compose up -d                      # OTel Collector 起動
-./scripts/setup-env.sh install            # エージェント用 OTel 環境変数を注入
+./scripts/setup-env.sh install            # エージェント用 OTel 環境変数を注入 (Linux)
+.\scripts\setup-env.ps1 install           # エージェント用 OTel 環境変数を注入 (Windows)
 uv run scripts/analyze.py <command>       # DuckDB 分析 (summary|tools|cost|security|direction)
 uv run scripts/score.py [--trace-id ID]   # LLM-as-a-Judge スコアリング
 ```
 
-既存環境を別マシンで使う: `azd env refresh && bash infra/hooks/postprovision.sh`
+既存環境を別マシンで使う:
+
+```bash
+# Linux/macOS
+azd env refresh && bash infra/hooks/postprovision.sh
+
+# Windows (PowerShell)
+azd env refresh; pwsh infra/hooks/postprovision.ps1
+```
 
 ## Conventions
 
@@ -43,6 +52,7 @@ gitleaks (シークレットスキャン), ruff (lint + format), shellcheck, che
 
 詳細は `docs/` を参照。README に重複させない。
 
+- [docs/setup.md](docs/setup.md) — セットアップ手順 (Windows / Linux 別)
 - [docs/otel-collector.md](docs/otel-collector.md) — パイプライン設定、コンテンツ分離、バックエンド追加方法
 - [docs/cost.md](docs/cost.md) — コスト計算の仕組み、MODEL_PRICING の管理、注意事項
 - [docs/infrastructure.md](docs/infrastructure.md) — Bicep テンプレート、作成されるリソース
