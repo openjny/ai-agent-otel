@@ -99,12 +99,24 @@ def extract_trace(trace_id: str | None) -> dict:
             entry["tool"] = tool_name
         if input_msg:
             # Truncate long messages for the judge
-            entry["input"] = input_msg[:2000] + "..." if len(input_msg or "") > 2000 else input_msg
+            entry["input"] = (
+                input_msg[:2000] + "..." if len(input_msg or "") > 2000 else input_msg
+            )
         if output_msg:
-            entry["output"] = output_msg[:2000] + "..." if len(output_msg or "") > 2000 else output_msg
+            entry["output"] = (
+                output_msg[:2000] + "..."
+                if len(output_msg or "") > 2000
+                else output_msg
+            )
         conversation.append(entry)
 
-    return {"trace_id": target_id, "agent": trace_rows[0][1], "spans": len(trace_rows), "conversation": conversation, "first_prompt": _extract_first_prompt(conversation)}
+    return {
+        "trace_id": target_id,
+        "agent": trace_rows[0][1],
+        "spans": len(trace_rows),
+        "conversation": conversation,
+        "first_prompt": _extract_first_prompt(conversation),
+    }
 
 
 def _extract_first_prompt(conversation: list[dict]) -> str:
@@ -118,7 +130,10 @@ def _extract_first_prompt(conversation: list[dict]) -> str:
             for msg in messages:
                 if msg.get("role") == "user":
                     for part in msg.get("parts", []):
-                        if part.get("type") == "text" and part.get("content", "").strip():
+                        if (
+                            part.get("type") == "text"
+                            and part.get("content", "").strip()
+                        ):
                             text = part["content"].strip()
                             return text[:120] + "..." if len(text) > 120 else text
         except (json.JSONDecodeError, TypeError, KeyError):
@@ -128,7 +143,11 @@ def _extract_first_prompt(conversation: list[dict]) -> str:
 
 def build_prompt(trace_data: dict) -> str:
     # Only include spans that have meaningful content
-    meaningful = [c for c in trace_data["conversation"] if c.get("input") or c.get("output") or c.get("tool")]
+    meaningful = [
+        c
+        for c in trace_data["conversation"]
+        if c.get("input") or c.get("output") or c.get("tool")
+    ]
 
     # Further truncate to keep prompt manageable
     summary_items = meaningful[:15]
@@ -138,9 +157,9 @@ def build_prompt(trace_data: dict) -> str:
     return textwrap.dedent(f"""\
         Evaluate this AI agent interaction trace. Return ONLY a JSON object with scores.
 
-        Agent: {trace_data['agent']}
-        Trace ID: {trace_data['trace_id'][:16]}
-        Spans: {trace_data['spans']}
+        Agent: {trace_data["agent"]}
+        Trace ID: {trace_data["trace_id"][:16]}
+        Spans: {trace_data["spans"]}
 
         Conversation (truncated):
         {conversation_json}
@@ -172,13 +191,17 @@ async def run_copilot(prompt: str) -> str:
         elif event.type.value == "session.idle":
             done.set()
 
-    async with CopilotClient(SubprocessConfig(
-        env={"COPILOT_OTEL_ENABLED": "false"},
-    )) as client:
+    async with CopilotClient(
+        SubprocessConfig(
+            env={"COPILOT_OTEL_ENABLED": "false"},
+        )
+    ) as client:
         async with await client.create_session(
             on_permission_request=PermissionHandler.deny_all
-                if hasattr(PermissionHandler, "deny_all")
-                else lambda req, inv: __import__("copilot.session", fromlist=["PermissionRequestResult"]).PermissionRequestResult(kind="denied-by-rules"),
+            if hasattr(PermissionHandler, "deny_all")
+            else lambda req, inv: __import__(
+                "copilot.session", fromlist=["PermissionRequestResult"]
+            ).PermissionRequestResult(kind="denied-by-rules"),
             model="gpt-4o-mini",
             infinite_sessions={"enabled": False},
         ) as session:
@@ -190,9 +213,13 @@ async def run_copilot(prompt: str) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Score a trace using Copilot SDK as LLM-as-Judge")
+    parser = argparse.ArgumentParser(
+        description="Score a trace using Copilot SDK as LLM-as-Judge"
+    )
     parser.add_argument("--trace-id", help="Trace ID prefix to score")
-    parser.add_argument("--dry-run", action="store_true", help="Print prompt without calling copilot")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print prompt without calling copilot"
+    )
     args = parser.parse_args()
 
     if not (DATA_DIR / "traces.jsonl").exists():
@@ -205,7 +232,10 @@ def main() -> None:
         print("No matching traces found.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Trace: {trace_data['trace_id'][:16]}... ({trace_data['spans']} spans, agent: {trace_data['agent']})", file=sys.stderr)
+    print(
+        f"Trace: {trace_data['trace_id'][:16]}... ({trace_data['spans']} spans, agent: {trace_data['agent']})",
+        file=sys.stderr,
+    )
     print(f"Prompt: {trace_data['first_prompt']}", file=sys.stderr)
 
     prompt = build_prompt(trace_data)

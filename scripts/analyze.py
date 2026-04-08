@@ -182,8 +182,12 @@ def cmd_cost(conn: duckdb.DuckDBPyConnection) -> None:
     """)
     df = conn.fetchdf()
 
-    df["input_cost"] = df.apply(lambda r: r["total_input"] / 1_000_000 * _lookup_price(r["model"])[0], axis=1)
-    df["output_cost"] = df.apply(lambda r: r["total_output"] / 1_000_000 * _lookup_price(r["model"])[1], axis=1)
+    df["input_cost"] = df.apply(
+        lambda r: r["total_input"] / 1_000_000 * _lookup_price(r["model"])[0], axis=1
+    )
+    df["output_cost"] = df.apply(
+        lambda r: r["total_output"] / 1_000_000 * _lookup_price(r["model"])[1], axis=1
+    )
     df["total_usd"] = df["input_cost"] + df["output_cost"]
 
     df["input_cost"] = df["input_cost"].map("${:.4f}".format)
@@ -196,10 +200,14 @@ def cmd_cost(conn: duckdb.DuckDBPyConnection) -> None:
     print(f"\n{'─' * 50}")
     print(f"Grand Total: ${grand:.4f}")
 
-    unknown_models = df[df.apply(lambda r: _lookup_price(r["model"]) == (0.0, 0.0), axis=1)]
+    unknown_models = df[
+        df.apply(lambda r: _lookup_price(r["model"]) == (0.0, 0.0), axis=1)
+    ]
     if not unknown_models.empty:
         names = ", ".join(unknown_models["model"].unique())
-        print(f"\nWarning: No pricing for: {names} (showing $0). Update MODEL_PRICING in analyze.py.")
+        print(
+            f"\nWarning: No pricing for: {names} (showing $0). Update MODEL_PRICING in analyze.py."
+        )
 
 
 def cmd_security(conn: duckdb.DuckDBPyConnection) -> None:
@@ -260,7 +268,9 @@ def cmd_direction(conn: duckdb.DuckDBPyConnection) -> None:
     """Analyze user direction/intervention patterns (requires content capture)."""
     logs_path = DATA_DIR / "logs.jsonl"
     if not logs_path.exists():
-        print("No logs.jsonl found. Content capture may not be enabled.", file=sys.stderr)
+        print(
+            "No logs.jsonl found. Content capture may not be enabled.", file=sys.stderr
+        )
         return
 
     print("=== Direction Analysis ===\n")
@@ -301,17 +311,27 @@ def cmd_direction(conn: duckdb.DuckDBPyConnection) -> None:
         ORDER BY agent
     """)
     print(conn.fetchdf().to_string(index=False))
-    print("\nNote: Keyword-based detection is approximate. Use 'copilot -p' for LLM-as-Judge scoring.")
+    print(
+        "\nNote: Keyword-based detection is approximate. Use 'copilot -p' for LLM-as-Judge scoring."
+    )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Analyze AI agent OTel telemetry with DuckDB")
-    parser.add_argument("command", choices=["summary", "tools", "cost", "security", "direction"],
-                        help="Analysis command to run")
+    parser = argparse.ArgumentParser(
+        description="Analyze AI agent OTel telemetry with DuckDB"
+    )
+    parser.add_argument(
+        "command",
+        choices=["summary", "tools", "cost", "security", "direction"],
+        help="Analysis command to run",
+    )
     args = parser.parse_args()
 
     if not traces_exist():
-        print(f"Error: {DATA_DIR}/traces.jsonl not found. Collect some telemetry first.", file=sys.stderr)
+        print(
+            f"Error: {DATA_DIR}/traces.jsonl not found. Collect some telemetry first.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     conn = get_conn()

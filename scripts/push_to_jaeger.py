@@ -61,7 +61,8 @@ def filter_by_trace_id(resource_spans: list[dict], trace_id: str) -> list[dict]:
         filtered_scope_spans = []
         for ss in rs.get("scopeSpans", []):
             filtered_spans = [
-                s for s in ss.get("spans", [])
+                s
+                for s in ss.get("spans", [])
                 if s.get("traceId", "").startswith(trace_id)
             ]
             if filtered_spans:
@@ -78,7 +79,8 @@ def filter_by_span_name(resource_spans: list[dict], pattern: str) -> list[dict]:
         filtered_scope_spans = []
         for ss in rs.get("scopeSpans", []):
             filtered_spans = [
-                s for s in ss.get("spans", [])
+                s
+                for s in ss.get("spans", [])
                 if pattern.lower() in s.get("name", "").lower()
             ]
             if filtered_spans:
@@ -116,14 +118,26 @@ def push_to_jaeger(resource_spans: list[dict], endpoint: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Push traces to Jaeger for visualization")
-    parser.add_argument("--file", type=Path, default=DEFAULT_TRACES_FILE, help="Path to traces.jsonl")
-    parser.add_argument("--endpoint", default=DEFAULT_JAEGER_ENDPOINT, help="Jaeger OTLP HTTP endpoint")
+    parser = argparse.ArgumentParser(
+        description="Push traces to Jaeger for visualization"
+    )
+    parser.add_argument(
+        "--file", type=Path, default=DEFAULT_TRACES_FILE, help="Path to traces.jsonl"
+    )
+    parser.add_argument(
+        "--endpoint", default=DEFAULT_JAEGER_ENDPOINT, help="Jaeger OTLP HTTP endpoint"
+    )
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--trace-id", help="Push a specific trace by ID (prefix match)")
-    group.add_argument("--recent", type=int, metavar="N", help="Push the N most recent traces")
-    group.add_argument("--filter", metavar="PATTERN", help="Push traces with span names matching pattern")
+    group.add_argument(
+        "--recent", type=int, metavar="N", help="Push the N most recent traces"
+    )
+    group.add_argument(
+        "--filter",
+        metavar="PATTERN",
+        help="Push traces with span names matching pattern",
+    )
 
     args = parser.parse_args()
 
@@ -140,7 +154,9 @@ def main() -> None:
         filtered = filter_by_trace_id(resource_spans, args.trace_id)
     elif args.recent:
         trace_ids = get_recent_trace_ids(resource_spans, args.recent)
-        print(f"Found {len(trace_ids)} recent traces: {', '.join(t[:12] + '...' for t in trace_ids)}")
+        print(
+            f"Found {len(trace_ids)} recent traces: {', '.join(t[:12] + '...' for t in trace_ids)}"
+        )
         filtered = []
         for tid in trace_ids:
             filtered.extend(filter_by_trace_id(resource_spans, tid))
@@ -159,7 +175,7 @@ def main() -> None:
         sys.exit(1)
 
     push_to_jaeger(filtered, args.endpoint)
-    print(f"View at: http://localhost:16686")
+    print("View at: http://localhost:16686")
 
 
 if __name__ == "__main__":
