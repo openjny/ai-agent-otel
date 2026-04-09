@@ -17,7 +17,16 @@
 |---|---|
 | `gen_ai.input.messages` | プロンプト全文 |
 | `gen_ai.output.messages` | レスポンス全文 |
+| `gen_ai.system_instructions` | システムプロンプト |
 | `gen_ai.tool.definitions` | ツール定義 |
+| `gen_ai.tool.description` | ツール説明 |
+| `gen_ai.tool.call.arguments` | ツール呼び出し引数 |
+| `gen_ai.tool.call.result` | ツール呼び出し結果 |
+| `copilot_chat.user_request` | ユーザーリクエスト全文 |
+| `copilot_chat.reasoning_content` | 推論/思考内容 |
+| `content` | チャットコンテンツ |
+| `github.copilot.skill.content` | スキル定義全文 |
+| `toolDefinitions` | ツール定義 (イベント) |
 | `tool_input` / `tool_output` | ツールの入出力 |
 | `prompt` | ユーザープロンプト |
 | `tool_parameters` | ツールパラメータ |
